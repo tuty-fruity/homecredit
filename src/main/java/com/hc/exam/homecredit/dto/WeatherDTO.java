@@ -1,12 +1,10 @@
 package com.hc.exam.homecredit.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.annotation.JsonNaming;
 
 import java.util.Map;
 
 public class WeatherDTO {
-
 
     private String id;
     private String weather;

@@ -38,7 +38,8 @@ public class WeatherRestController {
     @RequestMapping(value = "/weather", method = RequestMethod.GET)
     public ResponseEntity<Collection<WeatherDTO>> getWeatherForThreeCities() {
 
-        Collection weatherList = Stream.of("London", "Prague", "San Francisco")
+        Manager m = new Manager();
+        Collection<WeatherDTO> weatherList = Stream.of("London", "Prague", "San Francisco")
                 .map(city -> {
                     String endPoint = String.format(appURI.toString().concat("?q=%s&APPID=%s"), city, key);
                     WeatherDTO weather = restTemplate.getForObject(endPoint, WeatherDTO.class);
@@ -47,6 +48,11 @@ public class WeatherRestController {
                 .collect(Collectors.toList());
 
 
+        weatherList.stream().forEach(weather -> {
+            m.collect(weather);
+        });
+
+        weatherRepository.findAll().forEach(System.out::println);
         return ResponseEntity.ok(weatherList);
     }
 
@@ -65,12 +71,13 @@ public class WeatherRestController {
 
         void collect(WeatherDTO newWeather) {
             Weather weather = new Weather();
-            BeanUtils.copyProperties(newWeather, weather);
-            //
-        }
+            weather.setResponseId(newWeather.getId());
+            weather.setActualWeather(newWeather.getWeather());
+            weather.setLocation(newWeather.getLocation());
+            weather.setTemperature(newWeather.getTemperature());
+            weather.setResponseId(newWeather.getId());
 
-        void findLastUnique() {
-
+            weatherRepository.save(weather);
         }
     }
 }

@@ -55,6 +55,26 @@ public class Weather {
         return dtimeinserted;
     }
 
+    public void setResponseId(String responseId) {
+        this.responseId = responseId;
+    }
+
+    public void setLocation(String location) {
+        this.location = location;
+    }
+
+    public void setActualWeather(String actualWeather) {
+        this.actualWeather = actualWeather;
+    }
+
+    public void setTemperature(String temperature) {
+        this.temperature = temperature;
+    }
+
+    public void setDtimeinserted(Timestamp dtimeinserted) {
+        this.dtimeinserted = dtimeinserted;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -71,5 +91,17 @@ public class Weather {
     public int hashCode() {
 
         return Objects.hash(responseId, location, actualWeather, temperature, dtimeinserted);
+    }
+
+    @Override
+    public String toString() {
+        return "Weather{" +
+                "id=" + id +
+                ", responseId='" + responseId + '\'' +
+                ", location='" + location + '\'' +
+                ", actualWeather='" + actualWeather + '\'' +
+                ", temperature='" + temperature + '\'' +
+                ", dtimeinserted=" + dtimeinserted +
+                '}';
     }
 }
