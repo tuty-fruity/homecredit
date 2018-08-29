@@ -1,10 +1,11 @@
 package com.hc.exam.homecredit.ctrl;
 
 import com.hc.exam.homecredit.dto.WeatherDTO;
+import com.hc.exam.homecredit.helperbean.WeatherResponseCollector;
 import com.hc.exam.homecredit.model.Weather;
 import com.hc.exam.homecredit.repository.WeatherRepository;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -12,73 +13,85 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.RestTemplate;
 
 import java.net.URI;
-import java.net.URISyntaxException;
-import java.util.ArrayList;
+import java.sql.Timestamp;
 import java.util.Collection;
-import java.util.List;
+import java.util.Set;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 @RestController
+@RequestMapping("/weather")
 public class WeatherRestController {
 
     private final RestTemplate restTemplate;
     private final WeatherRepository weatherRepository;
-    private final URI appURI;
-    private final String key;
+    private final URI apiURI;
+
+    private final WeatherResponseCollector weatherResponseCollector;
 
     @Autowired
-    public WeatherRestController(RestTemplate restTemplate, WeatherRepository weatherRepository, URI appURI, String key) {
+    public WeatherRestController(RestTemplate restTemplate,
+                                 WeatherRepository weatherRepository,
+                                 WeatherResponseCollector weatherResponseCollector,
+                                 URI apiURI) {
         this.restTemplate = restTemplate;
         this.weatherRepository = weatherRepository;
-        this.appURI = appURI;
-        this.key = key;
+        this.weatherResponseCollector = weatherResponseCollector;
+        this.apiURI = apiURI;
     }
 
-    @RequestMapping(value = "/weather", method = RequestMethod.GET)
+    @RequestMapping(value = "/listInfo", method = RequestMethod.GET)
     public ResponseEntity<Collection<WeatherDTO>> getWeatherForThreeCities() {
 
-        Manager m = new Manager();
         Collection<WeatherDTO> weatherList = Stream.of("London", "Prague", "San Francisco")
                 .map(city -> {
-                    String endPoint = String.format(appURI.toString().concat("?q=%s&APPID=%s"), city, key);
+                    String endPoint = apiURI.toString().concat("&q=" + city);
                     WeatherDTO weather = restTemplate.getForObject(endPoint, WeatherDTO.class);
                     return weather;
                 })
                 .collect(Collectors.toList());
 
-
         weatherList.stream().forEach(weather -> {
-            m.collect(weather);
+            weatherResponseCollector.collect(weather);
         });
 
-        weatherRepository.findAll().forEach(System.out::println);
         return ResponseEntity.ok(weatherList);
     }
 
-    @RequestMapping(value = "/saveWeather", method = RequestMethod.POST)
-    public ResponseEntity<?> storeWeather() throws URISyntaxException {
+    @RequestMapping(value = "/store", method = RequestMethod.POST)
+    public ResponseEntity<?> storeWeather() {
+        Set<Weather> weatherSet = weatherResponseCollector.getWeatherSet();
 
-        return ResponseEntity.ok().build();
+        if (weatherSet.size() != 0) {
+            int skipSize = weatherSet.size() - 5; // to get only the last 5
+
+            if (skipSize > -1) { // skipSize cannot be negative
+
+                Supplier<Stream<Weather>> latestWeatherSupplier = () -> weatherSet.stream().skip(skipSize)
+                        .filter(weather -> (weather.getDtimeinserted() == null));
+
+                /*
+                *   save the last 5 unique weathers to db
+                * */
+                if (latestWeatherSupplier.get().count() == 5) {
+                    latestWeatherSupplier.get().forEach(weather -> {
+                        weather.setDtimeinserted(new Timestamp(System.currentTimeMillis()));
+                        weatherRepository.save(weather);
+                    });
+
+                    weatherRepository.findAll().forEach(System.out::println);
+                    return ResponseEntity.ok().build();
+                }
+            }
+        }
+
+        return ResponseEntity.status(HttpStatus.NO_CONTENT).build();
     }
 
-    private class Manager {
-
-        List<Weather> weatherList = new ArrayList<>();
-
-        Manager() {
-        }
-
-        void collect(WeatherDTO newWeather) {
-            Weather weather = new Weather();
-            weather.setResponseId(newWeather.getId());
-            weather.setActualWeather(newWeather.getWeather());
-            weather.setLocation(newWeather.getLocation());
-            weather.setTemperature(newWeather.getTemperature());
-            weather.setResponseId(newWeather.getId());
-
-            weatherRepository.save(weather);
-        }
+    @RequestMapping(value = "/all", method = RequestMethod.GET)
+    public Collection<Weather> getAllWeather() {
+        return weatherRepository.findAll();
     }
 }
 

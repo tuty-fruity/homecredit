@@ -83,8 +83,7 @@ public class Weather {
         return Objects.equals(responseId, weather.responseId) &&
                 Objects.equals(location, weather.location) &&
                 Objects.equals(actualWeather, weather.actualWeather) &&
-                Objects.equals(temperature, weather.temperature) &&
-                Objects.equals(dtimeinserted, weather.dtimeinserted);
+                Objects.equals(temperature, weather.temperature);
     }
 
     @Override

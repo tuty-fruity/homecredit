@@ -27,8 +27,8 @@ public class HomecreditApplication {
     }
 
     @Bean
-    public URI apiURI() throws URISyntaxException {
-	    return new URI("http://api.openweathermap.org/data/2.5/weather");
+    public URI apiURI(String keyAppId) throws URISyntaxException {
+	    return new URI("http://api.openweathermap.org/data/2.5/weather?APPID=" + keyAppId);
     }
 }
 
